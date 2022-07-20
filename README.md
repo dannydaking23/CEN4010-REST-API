@@ -5,7 +5,7 @@ How my files fit together:
 /models/author
 
 These files hold the actual objects and the database query parts of some get methods 
-which are then made avail to be exported to:
+which are then made available to be exported to:
 
 /controllers/admin
 /controllers/authors
