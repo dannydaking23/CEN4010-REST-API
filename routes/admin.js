@@ -1,8 +1,9 @@
 // imports express
 const express = require('express');
 
-// imports controllers/products
-const adminController = require('../controllers/admin');
+const BookAdmin = require('../models/book');
+
+const AuthorAdmin = require('../models/author');
 
 
 const router = express.Router();
@@ -11,10 +12,10 @@ router.use(express.json());
 
 
 // ADD new book to db
-router.post('/admin/add-book', adminController.addNewBook);
+router.post('/admin/add-book', BookAdmin.addNewBook);
 
-// ADDs new author to db
-router.post('/admin/add-author', adminController.addNewAuthor);
+// ADD new author to db
+router.post('/admin/add-author', AuthorAdmin.addNewAuthor);
 
 // exports router
 module.exports = router;
