@@ -1,17 +1,41 @@
-const express = require('express')
-const app = express()
-const morgan = require('morgan')
-const mysql = require('mysql')
-const bodyParser = require('body-parser')
 
-app.use(bodyParser.urlencoded({extended: false}))
 
-app.use(morgan('short'))
+// imports express.js
+const express = require('express');
+// imports body-parser
+const bodyParser = require('body-parser');
 
-const router = require('./routes/profile.js')
-app.use(router)
+// imports route to product page
+const bookRoutes = require('./routes/books')
 
-// localhost:3003
-app.listen(3003, () => {
-    console.log("Server is up and listening on 3003...")
-})
+// imports route to author page
+const authorRoutes = require('./routes/authors');
+
+// imports route to admin page
+const adminRoutes = require('./routes/admin');
+
+// imports route to profile page
+const profileRoutes = require('./routes/profile');
+
+
+const app = express();
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+
+
+// GETs all books page
+app.use(bookRoutes);
+
+// GETs authors page
+app.use(authorRoutes)
+
+// GETs admin page
+app.use(adminRoutes);
+
+app.use(profileRoutes);
+
+
+
+// listens for activity on port 3000
+app.listen(3000);
