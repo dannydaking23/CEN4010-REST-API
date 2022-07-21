@@ -5,7 +5,7 @@ const router = express.Router()
 
 const pool = mysql.createPool({
     host: 'localhost',
-        database: 'bookstore_db',
+        database: 'shoppingCartDB',
         user: 'root',
         password: ''
 })
@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
 })
 
 router.get('/shoppingCart', (req, res) => {
-    const queryString = "SELECT * FROM shoppingCart"
+    const queryString = "SELECT * FROM shoppingcart"
     pool.query(queryString, (err, rows, fields) =>{
         if(err){
             res.sendStatus(500)
@@ -29,11 +29,11 @@ router.get('/shoppingCart', (req, res) => {
 })
 
 router.get('/shoppingCart/:username', (req, res) => {
-    console.log("Fetching shoppingCart with username: " + req.params.username)
+    console.log("Fetching shoppingcart with username: " + req.params.username)
 
     const username = req.params.username
     //console.log(username)
-    const queryString = "SELECT * FROM shoppingCart WHERE username = ?"
+    const queryString = "SELECT * FROM shoppingcart WHERE username = ?"
     pool.query(queryString, [username], (err, rows, fields) =>{
         if(err){
             res.sendStatus(500)
@@ -49,20 +49,14 @@ router.post('/shoppingCart', (req, res) => {
     console.log("Trying to create a new book in shopping cart...")
 
     let username = req.body.username
-    let password = req.body.password
     let name = req.body.name
-    //let user = req.body.username,
     let author = req.body.author
     let description = req.body.description
 
-    if(!username || !password) {
-        return res.status(400).send({Error: true, message: "Please provide a Username and Password"})
-    }
-
-    const queryString = "INSERT INTO shoppingCart (name, author, description) WHERE username = ? VALUES (?, ?, ?, ?, ?)"
-    pool.query(queryString, [name, author, description], (err, results, fields) => {
+    const queryString = "INSERT INTO shoppingcart (username, name, author, description) WHERE username = ? VALUES (?, ?, ?, ?)"
+    pool.query(queryString, [username, name, author, description], (err, results, fields) => {
         
-        console.log("Profile was created successfully")
+        console.log("User shopping cart updated successfully")
         res.end()
     })
 })
@@ -77,7 +71,7 @@ router.delete('/shoppingCart/:name', (req, res) => {
         if(err){
             res.status(500)
         }else{
-            console.log("Shopping Cart was updated successfully")
+            console.log("Book from Shopping Cart was deleted successfully")
         }
         res.end()
     })
