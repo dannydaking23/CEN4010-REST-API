@@ -1,19 +1,19 @@
 // imports express
 const express = require('express');
 
-// imports controllers/books file
-const booksController = require('../controllers/books');
 
+// imports Book Model 
+const BookModel = require('../models/book');
 
 const router = express.Router();
 
-// route to get all products in database
-router.get('/books', booksController.getBooks);
+// route to GET all products in database
+router.get('/books', BookModel.getAllBooks);
 
 
 
-// route to get books by isbn
-router.get('/books/:isbn', booksController.getBooksByISBN);
+// route to GET books by isbn
+router.get('/books/:isbn', BookModel.getBookByISBN);
 
 // exports router
 module.exports = router;
