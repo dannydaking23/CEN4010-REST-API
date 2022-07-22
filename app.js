@@ -10,7 +10,7 @@ app.use(morgan('short'))
 
 const profileRouter = require('./routes/profile.js')
 const shoppingCartRouter = require('./routes/shoppingCart.js')
-const wishlistRouter = require('/routes/wishlist.js')
+const wishlistRouter = require('./routes/wishlist.js')
 
 app.use(profileRouter)
 app.use(shoppingCartRouter)
