@@ -17,17 +17,11 @@ const database = mysql.createConnection({
 
 
 // Creating wishlist 
-router.post('/api/createwishlist/:username/:password/:name/:num', (req, res) => {
+router.post('/api/createwishlist/:username/:password/:name', (req, res) => {
     console.log(req.params);
-    let tableName = (req.params.name);
-    let num = (req.params.num);
-
-    if (num <= 0){
-        res.send('You need a number greater than 0.');
-    }
-     else if (num > 3){
-        res.send('User cannot have more than 3 wishlist');
-    } else {
+    let wishlist = (req.params.name);
+    let username = (req.params.username);
+    
     let sql = `SELECT * FROM profiles
                WHERE username = '${req.params.username}'`;
     
@@ -37,8 +31,8 @@ router.post('/api/createwishlist/:username/:password/:name/:num', (req, res) => 
                         WHERE password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
-                    let sql = `CREATE TABLE ${tableName} (username VARCHAR (255), book VARCHAR(255), isbn VARCHAR(255))`;
-                    database.query(sql, function(err, result) {
+                    let sql = `INSERT INTO wishlist (username, wishlist) VALUES (?,?)`;
+                    database.query(sql,[username, wishlist], function(err, result) {
                         if (err) throw err;
                         console.log(result);
                         res.send('Wishlist created...');
@@ -50,7 +44,6 @@ router.post('/api/createwishlist/:username/:password/:name/:num', (req, res) => 
                 })
             }
         });
-    }
 });
 
 
@@ -74,14 +67,22 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
                                WHERE isbn = '${req.params.isbn}'`;
                     database.query(sql, (err, result) =>{
                         if (result && result.length){
-                            let sql = `INSERT INTO ${nameWishlist} (username, book, isbn) SELECT username, title, isbn FROM profiles, books WHERE username = '${req.params.username}' AND isbn = '${req.params.isbn}'`;
-                            database.query( sql, function(err, result) {
-                                if (err) throw err;
-                                console.log(result);
-                                res.send('Book added to wishlist...');
-                            }); 
+                            let sql = `SELECT * FROM wishlist
+                                       WHERE wishlist = '${req.params.name}' AND username = '${req.params.username}'`;
+                            database.query(sql, (err, result) =>{
+                                if (result && result.length){
+                                    let sql = `INSERT INTO wishlist (username, book, isbn, wishlist) VALUES ((?), (SELECT title FROM books WHERE isbn = '${req.params.isbn}') , (SELECT isbn FROM books WHERE isbn = '${req.params.isbn}'), (?)) `;
+                                    database.query( sql,[name, nameWishlist], function(err, result) {
+                                        if (err) throw err;
+                                        console.log(result);
+                                        res.send('Book added to wishlist...');
+                                    }); 
+                                } else {
+                                    res.send('wishlist not found');
+                                }
+                            })
                         } else {
-                        res.send('Book not in database');
+                            res.send('Book not in database');
                         }  
                     if (err) throw err;
                     })
@@ -89,7 +90,7 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
                     res.send('Incorrect password.');
                 }
             })
-            
+
         } else {
             res.send('Wrong username');
         }
@@ -110,7 +111,7 @@ router.get('/api/getwish/:username/:password/:name', (req, res) => {
                        WHERE password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
-                    let sql = `SELECT * FROM ${nameWishlist}`;
+                    let sql = `SELECT * FROM wishlist WHERE username = '${req.params.username}' AND wishlist = '${req.params.name}' AND book IS NOT NULL`;
                     database.query(sql, function(err, result) {
                         if (err) throw err;
                         console.log(result);
@@ -127,7 +128,7 @@ router.get('/api/getwish/:username/:password/:name', (req, res) => {
 });
 
 // Move a book from wishlist to another wishlist
-router.post('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) => {
+router.put('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) => {
     console.log(req.body);
     let nameWishlist = (req.params.name);
     let nameWishlist2 = (req.params.name2);
@@ -146,21 +147,25 @@ router.post('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) =
                                WHERE isbn = '${req.params.isbn}'`;
                     database.query(sql, (err, result) =>{
                         if (result && result.length){
-                        let sql = `SELECT * FROM ${nameWishlist}
-                                   WHERE isbn = '${req.params.isbn}'`;
+                        let sql = `SELECT * FROM wishlist
+                                   WHERE isbn = '${req.params.isbn}' AND username = '${req.params.username}' AND wishlist = '${req.params.name}'`;
                             database.query(sql, (err, result) =>{
                                 if (result && result.length){
-                                    let sql = `DELETE FROM ${nameWishlist} WHERE isbn ='${req.params.isbn}'`;
-                                    database.query(sql, function(err, result) {
-                                        if (err) throw err;
-                                        console.log(result);
-                                    }); 
-                                    let sql2 = `INSERT INTO ${nameWishlist2} (username, book, isbn) SELECT username, title, isbn FROM profiles, books WHERE username = '${req.params.username}' AND isbn = '${req.params.isbn}'`;
-                                    database.query(sql2, function(err, result) {
-                                        if (err) throw err;
-                                        console.log(result);
-                                        res.send('Book moved to another wishlist');
-                                    }); 
+                                    let sql = `SELECT * FROM wishlist
+                                               WHERE username = '${req.params.username}' AND wishlist = '${req.params.name2}'`;
+                                    database.query(sql, (err, result) =>{
+                                        if (result && result.length){
+                                            let sql2 = `UPDATE wishlist SET wishlist = ? WHERE wishlist = ? AND username = '${req.params.username}' AND isbn = '${req.params.isbn}'`;
+                                            database.query(sql2, [nameWishlist2, nameWishlist],  function(err, result) {
+                                                if (err) throw err;
+                                                console.log(result);
+                                                res.send('Book moved to another wishlist');
+                                            }); 
+                                        }else {
+                                            console.log(nameWishlist2);
+                                            res.send('Second wishlist does not exist.');
+                                        }
+                                    })
                                 } else {
                                     res.send('book not found in first wishlist...');
                                 }
@@ -183,7 +188,7 @@ router.post('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) =
 // Move a book from wishlist to shoppingcart
 router.post('/api/movewishtoshoppingcart/:username/:password/:isbn/:name', (req, res) => {
     console.log(req.body);
-    let nameWishlist = (req.params.name);
+    //let nameWishlist = (req.params.name);
 
 
     let sql = `SELECT * FROM profiles
@@ -199,11 +204,11 @@ router.post('/api/movewishtoshoppingcart/:username/:password/:isbn/:name', (req,
                                 WHERE isbn = '${req.params.isbn}'`;
                     database.query(sql, (err, result) =>{
                         if (result && result.length){
-                            let sql = `SELECT * FROM ${nameWishlist}
-                                        WHERE isbn = '${req.params.isbn}'`;
+                            let sql = `SELECT * FROM wishlist
+                                        WHERE isbn = '${req.params.isbn}' AND username = '${req.params.username}' AND wishlist = '${req.params.name}'`;
                             database.query(sql, (err, result) =>{
                                 if (result && result.length){
-                                    let sql = `DELETE FROM ${nameWishlist} WHERE isbn ='${req.params.isbn}'`;
+                                    let sql = `DELETE FROM wishlist WHERE username = '${req.params.username}' AND isbn ='${req.params.isbn}' AND wishlist = '${req.params.name}'`;
                                     database.query(sql, function(err, result) {
                                         if (err) throw err;
                                         console.log(result);
@@ -251,15 +256,23 @@ router.delete('/api/deletewish/:username/:password/:isbn/:name', (req, res) => {
                                 WHERE isbn = '${req.params.isbn}'`;
                     database.query(sql, (err, result) =>{
                         if (result && result.length){
-                            let sql = `DELETE FROM ${nameWishlist} WHERE isbn ='${req.params.isbn}'`;
-                            database.query(sql, function(err, result) {
-                                if (err) throw err;
-                                console.log(result);
-                                res.send('Book deleted to wishlist...');
-                            }); 
-                        } else {
-                            res.send('Book not in database');
-                        }  
+                            let sql = `SELECT * FROM wishlist
+                                       WHERE isbn = '${req.params.isbn}' AND username = '${req.params.username}' AND wishlist = '${req.params.name}'`;
+                            database.query(sql, (err, result) =>{
+                                if (result && result.length){
+                                let sql = `DELETE FROM wishlist WHERE isbn ='${req.params.isbn}' AND username = '${req.params.username}' AND wishlist = '${req.params.name}'`;
+                                database.query(sql, function(err, result) {
+                                    if (err) throw err;
+                                    console.log(result);
+                                    res.send('Book deleted from wishlist...');
+                                }); 
+                            } else {
+                                res.send('Book not in wishlist');
+                            }
+                        })
+                            } else {
+                                res.send('Book not in database');
+                            }  
                     if (err) throw err;
                     })
                 } else {
