@@ -100,6 +100,10 @@ Author.addNewAuthor = (req, res, next) => {
     });
 }
 
+//********************************************************************** */
+
+// ROUTES SECTION
+
 // route to GET all authors
 router.get('/authors', Author.getAuthors);
 
