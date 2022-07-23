@@ -285,4 +285,4 @@ router.delete('/api/deletewish/:username/:password/:isbn/:name', (req, res) => {
     })
 });
 
-module.exports = router
+module.exports = router;
