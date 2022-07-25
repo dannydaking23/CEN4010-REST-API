@@ -98,25 +98,33 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
 });
 
 // Get all books in specific wishlist
-router.get('/api/getwish/:username/:password/:name', (req, res) => {
+app.get('/api/getwish/:username/:password/:name', (req, res) => {
     console.log(req.body);
     let nameWishlist = (req.params.name);
 
-    let sql = `SELECT * FROM profiles
+    let sql = `SELECT * FROM profile
                WHERE username = '${req.params.username}'`;
     
     database.query(sql, (err, result) =>{
         if (result && result.length){
-            let sql = `SELECT * FROM profiles
+            let sql = `SELECT * FROM profile
                        WHERE password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
-                    let sql = `SELECT * FROM wishlist WHERE username = '${req.params.username}' AND wishlist = '${req.params.name}' AND book IS NOT NULL`;
-                    database.query(sql, function(err, result) {
-                        if (err) throw err;
-                        console.log(result);
-                        res.send(result);
-                    }); 
+                    let sql = `SELECT * FROM wishlist
+                               WHERE wishlist = '${req.params.name}'`;
+                    database.query(sql, (err, result) =>{
+                        if (result && result.length){
+                        let sql = `SELECT * FROM wishlist WHERE username = '${req.params.username}' AND wishlist = '${req.params.name}' AND book IS NOT NULL`;
+                        database.query(sql, function(err, result) {
+                            if (err) throw err;
+                            console.log(result);
+                            res.send(result);
+                        });
+                    }else {
+                        res.send('Wishlist not found.');
+                    } 
+                })
             } else {
                 res.send('Incorrect password.');
             }
