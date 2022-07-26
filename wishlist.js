@@ -1,10 +1,8 @@
 const express = require ('express');
 const mysql = require ('mysql');
-const cors = require ('cors');
 const bodyparser = require('body-parser');
 const router = express.Router();
 
-router.use(cors());
 router.use(bodyparser.json());
 
 // Create connection
@@ -17,33 +15,43 @@ const database = mysql.createConnection({
 
 
 // Creating wishlist 
-router.post('/api/createwishlist/:username/:password/:name', (req, res) => {
+router.post('/api/createwishlist/:username/:password/:name/:id', (req, res) => {
     console.log(req.params);
     let wishlist = (req.params.name);
     let username = (req.params.username);
+    let id = (req.params.id);
     
     let sql = `SELECT * FROM profiles
                WHERE username = '${req.params.username}'`;
-    
     database.query(sql, (err, result) =>{
         if (result && result.length){
             let sql = `SELECT * FROM profiles
-                        WHERE password = '${req.params.password}'`;
+                        WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
-                    let sql = `INSERT INTO wishlist (username, wishlist) VALUES (?,?)`;
-                    database.query(sql,[username, wishlist], function(err, result) {
-                        if (err) throw err;
-                        console.log(result);
-                        res.send('Wishlist created...');
-                        });  
-                    }else {
-                        res.send('Username or Password not in database');
-                    }
-                    if (err) throw err;
-                })
-            }
-        });
+                    let sql = `SELECT * FROM wishlist
+                                WHERE username = '${req.params.username}' AND id = '${req.params.id}'`;
+                    database.query(sql, (err, result) =>{
+                        if ((result && result.length) || id > 3 || id <= 0){
+                            res.send('Id number is already created or is > than 3 or < than 0.');
+                        } else {
+                            let sql = `INSERT INTO wishlist (username, wishlist, id) VALUES (?,?,?)`;
+                            database.query(sql,[username, wishlist, id], function(err, result) {
+                                if (err) throw err;
+                                console.log(result);
+                                res.send('Wishlist created...');
+                            });  
+                        }
+                    })
+                }else {
+                    res.send('Password incorrect.');
+                }
+                if (err) throw err;
+            })
+        } else {
+            res.send('Wrong username');
+        }
+    });
 });
 
 
@@ -60,7 +68,7 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
     database.query(sql, (err, result) =>{
         if (result && result.length){               
             let sql = `SELECT * FROM profiles
-                       WHERE password = '${req.params.password}'`;
+                       WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
                     let sql = `SELECT * FROM books
@@ -71,7 +79,7 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
                                        WHERE wishlist = '${req.params.name}' AND username = '${req.params.username}'`;
                             database.query(sql, (err, result) =>{
                                 if (result && result.length){
-                                    let sql = `INSERT INTO wishlist (username, book, isbn, wishlist) VALUES ((?), (SELECT title FROM books WHERE isbn = '${req.params.isbn}') , (SELECT isbn FROM books WHERE isbn = '${req.params.isbn}'), (?)) `;
+                                    let sql = `INSERT INTO wishlist (username, book, isbn, wishlist, id) VALUES ((?), (SELECT title FROM books WHERE isbn = '${req.params.isbn}') , (SELECT isbn FROM books WHERE isbn = '${req.params.isbn}'), (?), (SELECT * FROM (SELECT id FROM wishlist WHERE wishlist = '${req.params.name}' AND book IS NULL AND username = '${req.params.username}') AS id)) `;
                                     database.query( sql,[name, nameWishlist], function(err, result) {
                                         if (err) throw err;
                                         console.log(result);
@@ -98,17 +106,17 @@ router.post('/api/addwish/:username/:password/:isbn/:name', (req, res) => {
 });
 
 // Get all books in specific wishlist
-app.get('/api/getwish/:username/:password/:name', (req, res) => {
+router.get('/api/getwish/:username/:password/:name', (req, res) => {
     console.log(req.body);
     let nameWishlist = (req.params.name);
 
-    let sql = `SELECT * FROM profile
+    let sql = `SELECT * FROM profiles
                WHERE username = '${req.params.username}'`;
     
     database.query(sql, (err, result) =>{
         if (result && result.length){
-            let sql = `SELECT * FROM profile
-                       WHERE password = '${req.params.password}'`;
+            let sql = `SELECT * FROM profiles
+                       WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
                     let sql = `SELECT * FROM wishlist
@@ -136,19 +144,19 @@ app.get('/api/getwish/:username/:password/:name', (req, res) => {
 });
 
 // Move a book from wishlist to another wishlist
-router.put('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) => {
+router.post('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) => {
     console.log(req.body);
+    let username = (req.params.username);
     let nameWishlist = (req.params.name);
     let nameWishlist2 = (req.params.name2);
 
-
-    let sql = `SELECT * FROM profiles
+    let sql = `SELECT * FROM profile
                WHERE username = '${req.params.username}'`;
     
     database.query(sql, (err, result) =>{
         if (result && result.length){
             let sql = `SELECT * FROM profiles
-                        WHERE password = '${req.params.password}'`;
+                        WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
                     let sql = `SELECT * FROM books
@@ -163,12 +171,18 @@ router.put('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) =>
                                                WHERE username = '${req.params.username}' AND wishlist = '${req.params.name2}'`;
                                     database.query(sql, (err, result) =>{
                                         if (result && result.length){
-                                            let sql2 = `UPDATE wishlist SET wishlist = ? WHERE wishlist = ? AND username = '${req.params.username}' AND isbn = '${req.params.isbn}'`;
-                                            database.query(sql2, [nameWishlist2, nameWishlist],  function(err, result) {
+                                            let sql2 = `INSERT INTO wishlist (username, book, isbn, wishlist, id) VALUES ((?), (SELECT title FROM books WHERE isbn = '${req.params.isbn}') , (SELECT isbn FROM books WHERE isbn = '${req.params.isbn}'), (?), (SELECT * FROM (SELECT id FROM wishlist WHERE wishlist = '${req.params.name2}' AND book IS NULL AND username = '${req.params.username}') AS id)) `;
+                                            database.query(sql2, [username, nameWishlist2], function(err, result) {
+                                                if (err) throw err;
+                                                console.log(result);
+                                            }); 
+                                            let sql = `DELETE FROM wishlist WHERE username = '${req.params.username}' AND isbn ='${req.params.isbn}' AND wishlist = '${req.params.name}'`;
+                                            database.query(sql, function(err, result) {
                                                 if (err) throw err;
                                                 console.log(result);
                                                 res.send('Book moved to another wishlist');
-                                            }); 
+                                            })
+                                        
                                         }else {
                                             console.log(nameWishlist2);
                                             res.send('Second wishlist does not exist.');
@@ -196,8 +210,6 @@ router.put('/api/movewish/:username/:password/:isbn/:name/:name2', (req, res) =>
 // Move a book from wishlist to shoppingcart
 router.post('/api/movewishtoshoppingcart/:username/:password/:isbn/:name', (req, res) => {
     console.log(req.body);
-    //let nameWishlist = (req.params.name);
-
 
     let sql = `SELECT * FROM profiles
                WHERE username = '${req.params.username}'`;
@@ -205,7 +217,7 @@ router.post('/api/movewishtoshoppingcart/:username/:password/:isbn/:name', (req,
     database.query(sql, (err, result) =>{
         if (result && result.length){
             let sql = `SELECT * FROM profiles
-                        WHERE password = '${req.params.password}'`;
+                        WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
                     let sql = `SELECT * FROM books
@@ -257,7 +269,7 @@ router.delete('/api/deletewish/:username/:password/:isbn/:name', (req, res) => {
     database.query(sql, (err, result) =>{
         if (result && result.length){
             let sql = `SELECT * FROM profiles
-                        WHERE password = '${req.params.password}'`;
+                        WHERE username = '${req.params.username}' AND password = '${req.params.password}'`;
             database.query(sql, (err, result) =>{
                 if (result && result.length){
                     let sql = `SELECT * FROM books
