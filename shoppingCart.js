@@ -5,7 +5,7 @@ const router = express.Router()
 
 const pool = mysql.createPool({
     host: 'localhost',
-    database: 'bookstore_db',
+    database: 'shoppingCartDB',
     user: 'root',
     password: ''
 })
@@ -33,7 +33,7 @@ router.get('/shoppingCart/:username', (req, res) => {
 
     const username = req.params.username
     //console.log(username)
-    const queryString = "SELECT * FROM shoppingCart WHERE username = ?"
+    const queryString = "SELECT * FROM shoppingcart WHERE username = ?"
     pool.query(queryString, [username], (err, rows, fields) =>{
         if(err){
             res.sendStatus(500)
